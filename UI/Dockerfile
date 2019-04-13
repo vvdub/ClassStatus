@@ -1,20 +1,21 @@
-FROM microsoft/dotnet:2.1-aspnetcore-runtime AS base
+FROM mcr.microsoft.com/dotnet/core/aspnet:2.1-stretch-slim AS base
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
-FROM microsoft/dotnet:2.1-sdk AS build
+FROM mcr.microsoft.com/dotnet/core/sdk:2.1-stretch AS build
 WORKDIR /src
-COPY ["test1/test1.csproj", "test1/"]
-RUN dotnet restore "test1/test1.csproj"
+COPY ["UI/UI.csproj", "UI/"]
+COPY ["Models/Models.csproj", "Models/"]
+RUN dotnet restore "UI/UI.csproj"
 COPY . .
-WORKDIR "/src/test1"
-RUN dotnet build "test1.csproj" -c Release -o /app
+WORKDIR "/src/UI"
+RUN dotnet build "UI.csproj" -c Release -o /app
 
 FROM build AS publish
-RUN dotnet publish "test1.csproj" -c Release -o /app
+RUN dotnet publish "UI.csproj" -c Release -o /app
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app .
-ENTRYPOINT ["dotnet", "test1.dll"]
+ENTRYPOINT ["dotnet", "UI.dll"]

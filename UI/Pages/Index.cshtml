@@ -3,14 +3,77 @@
 @{
     ViewData["Title"] = "Home page";
 }
-<h1>How you doing?</h1>
-<div class="row">
-    <div class="col-md-3">
-        <h2>Application uses</h2>
-        <ul>
-            <li>Sample pages using ASP.NET Core Razor Pages</li>
-            <li>Theming using <a href="https://go.microsoft.com/fwlink/?LinkID=398939">Bootstrap</a></li>
-        </ul>
+<div id="app">
+    <div class="row">
+        <h1>{{name}}</h1>
+        <div class="col-md-2" v-for="team in teams">
+            <div class="team-tile" v-bind:class="{ 'need-help': team.needHelp, 'complete': team.complete}">
+                <span class="team-title">{{team.name}}</span>
+                <div class="team-time">
+                    <span v-if="team.needHelp">{{new Date(team.helpTime)|formatTime}}</span>
+                    <span v-if="team.complete">{{new Date(team.completionTime) | formatTime}}</span>
+                </div>
+            </div>
+
+        </div>
     </div>
-    
 </div>
+
+@section styles{
+    <style>
+        body {
+            background-color: black;
+            color: white;
+        }
+
+        .team-tile {
+            width: 100%;
+            height: 100px;
+            border: solid white;
+            padding: 2px;
+        }
+
+        .team-title {
+            width: 100%;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .normal {
+            background-color: black;
+        }
+
+        .complete {
+            background-color: lightgreen;
+        }
+
+        .need-help {
+            background-color: lightyellow;
+            color: black;
+        }
+
+        .team-time{
+            bottom: 10px;
+            position: absolute;
+        }
+    </style>
+}
+
+@section scripts{
+    <script>
+   let model= @Html.Raw(Json.Serialize( Model.WorkTasks));
+    </script>
+    <script>
+        Vue.filter('formatTime', function (value) {
+            if (value) {
+                return moment(String(value)).format('hh:mm:ss')
+            }
+        });
+        var app = new Vue({
+            el: '#app',
+            data: model
+        });
+
+    </script>
+
+}
