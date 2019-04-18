@@ -5,8 +5,8 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/core/sdk:2.1-stretch AS build
 WORKDIR /src
-COPY ["UI/UI.csproj", "UI/"]
-COPY ["Models/Models.csproj", "Models/"]
+COPY ["../UI/UI.csproj", "UI/"]
+COPY ["../Models/Models.csproj", "Models/"]
 RUN dotnet restore "UI/UI.csproj"
 COPY . .
 WORKDIR "/src/UI"
