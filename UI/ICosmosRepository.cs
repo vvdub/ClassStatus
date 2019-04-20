@@ -8,7 +8,8 @@ namespace UI
 {
     public interface ICosmosRepository
     {
-        Task CreateTeam(Team team);
+        Task UpdateWorkTask(WorkTask workTask);
+        Task<Guid> CreateTeam(Team team);
         Task CreateWorkTask(WorkTask workTask);
         Task<WorkTask> GetCurrentTask();
         Task<IEnumerable<Team>> GetTeams();

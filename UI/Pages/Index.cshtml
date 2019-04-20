@@ -4,12 +4,21 @@
     ViewData["Title"] = "Home page";
 }
 <div id="app">
+    <label for="teamName">Add a new team</label>
+    <input type="text" v-model="teamName" id="teamName" /><button v-on:click="createTeam()">Add team</button>
+    <label for="taskName">Set current task</label>
+    <input type="text" v-model="taskName" id="taskName" /><button v-on:click="createTask()">Add task</button>
     <div class="row">
         <h1>{{name}}</h1>
         <div class="col-md-2" v-for="team in teams">
-            <div class="team-tile" v-bind:class="{ 'need-help': team.needHelp, 'complete': team.complete}">
+            <div class="team-tile" v-bind:class="{ 'need-help': team.needHelp, 'complete': team.complete, myteam: team.id === teamId}">
                 <span class="team-title">{{team.name}}</span>
+                <div class="team-controls" v-if="team.id === teamId">
+                    <span v-on:click="help()">Help!</span>
+                    <span v-on:click="done()">Done!</span>
+                </div>
                 <div class="team-time">
+
                     <span v-if="team.needHelp">{{new Date(team.helpTime)|formatTime}}</span>
                     <span v-if="team.complete">{{new Date(team.completionTime) | formatTime}}</span>
                 </div>
@@ -20,60 +29,155 @@
 </div>
 
 @section styles{
-    <style>
-        body {
-            background-color: black;
-            color: white;
-        }
+<style>
+    body {
+        background-color: black;
+        color: white;
+    }
 
-        .team-tile {
-            width: 100%;
-            height: 100px;
-            border: solid white;
-            padding: 2px;
-        }
+    .col-md-2 {
+        padding-bottom: 10px;
+    }
 
-        .team-title {
-            width: 100%;
-            font-weight: bold;
-            text-align: center;
-        }
+    .team-tile {
+        width: 100%;
+        height: 100px;
+        border: solid white;
+        padding: 2px;
+    }
 
-        .normal {
-            background-color: black;
-        }
+    .team-title {
+        width: 100%;
+        font-weight: bold;
+        text-align: center;
+    }
 
-        .complete {
-            background-color: lightgreen;
-        }
+    .myteam {
+        border-color: orange;
+    }
 
-        .need-help {
-            background-color: lightyellow;
-            color: black;
-        }
+    .normal {
+        background-color: black;
+    }
 
-        .team-time{
-            bottom: 10px;
-            position: absolute;
-        }
-    </style>
+    .complete {
+        background-color: lightgreen;
+    }
+
+    .need-help {
+        background-color: lightyellow;
+        color: black;
+    }
+
+    .team-time {
+        bottom: 10px;
+        position: absolute;
+    }
+
+    .team-controls {
+        bottom: 30px;
+        position: absolute;
+        cursor: pointer;
+    }
+
+    input {
+        color: black;
+    }
+
+    button {
+        color: black;
+    }
+</style>
 }
 
 @section scripts{
-    <script>
-        let model = {};
-    </script>
-    <script>
+<script>
+
+    async function createTask(taskName) {
+        await fetch("/api/WorkTask", {
+            method: "POST", body: JSON.stringify(taskName), headers: new Headers({
+                'Content-Type': 'application/json'
+            })
+        });
+
+    }
+    async function createTeam(teamName) {
+        return await (await fetch("/api/Team", {
+            method: "POST", body: JSON.stringify(teamName), headers: new Headers({
+                'Content-Type': 'application/json'
+            })
+        })).json();
+    }
+    async function help(teamId) {
+        await fetch("/api/Team/help", {
+            method: "POST",
+            body: JSON.stringify(teamId), headers: new Headers({
+                'Content-Type': 'application/json'
+            })
+        });
+    }
+    async function done(teamId) {
+        await fetch("/api/Team/done", {
+            method: "POST",
+            body: JSON.stringify(teamId), headers: new Headers({
+                'Content-Type': 'application/json'
+            })
+        });
+    }
+    async function setup() {
+        let model = await (await fetch("/api/WorkTask")).json();
+        model.teamName = localStorage.getItem("teamName");
+        model.teamId = localStorage.getItem("teamId");
         Vue.filter('formatTime', function (value) {
-            if (value) {
-                return moment(String(value)).format('hh:mm:ss')
+            if (value && typeof(value) === "string") {
+                return moment(String(value), moment.ISO_8601).format('HH:mm:ss');
+            }
+            if (value && typeof (value) === "object") {
+                return moment(value).format('HH:mm:ss');
             }
         });
         var app = new Vue({
             el: '#app',
-            data: model
+            data: {
+                taskName: "",
+                ...model
+            },
+            methods: {
+                createTask: async function () {
+                    await createTask(this.taskName);
+                    this.name = this.taskName;
+                    for(const team of this.teams){
+                        team.needHelp = false;
+                        team.complete = false;
+                        team.completionTime = null;
+                        team.helpTime = null;
+                    }
+                },
+                createTeam: async function () {
+                    let newid = await createTeam(this.teamName);
+                    this.teams.push({ name: this.teamName });
+                    localStorage.setItem("teamId", newid);
+                    localStorage.setItem("teamName", this.teamName);
+                },
+                help: async function () {
+                    await help(this.teamId);
+                    this.teams.find(x => x.id == this.teamId).needHelp = true;
+                    this.teams.find(x => x.id == this.teamId).complete = false;
+                    this.teams.find(x => x.id == this.teamId).helpTime = moment();
+                    this.teams.find(x => x.id == this.teamId).completionTime = null;
+                },
+                done: async function () {
+                    await done(this.teamId);
+                    this.teams.find(x => x.id == this.teamId).complete = true;
+                    this.teams.find(x => x.id == this.teamId).needHelp = false;
+                    this.teams.find(x => x.id == this.teamId).completionTime = moment();
+                    this.teams.find(x => x.id == this.teamId).helpTime = null;
+                }
+            }
         });
+    }
+    setup();
 
-    </script>
+</script>
 
 }

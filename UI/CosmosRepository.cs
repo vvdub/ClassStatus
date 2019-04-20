@@ -48,19 +48,32 @@ namespace UI
             var workTask = _client.CreateDocumentQuery<WorkTask>(
                 UriFactory.CreateDocumentCollectionUri(DatabaseId, WORKTASKS))
                 .OrderByDescending(x => x.CreateDate)
-                .FirstOrDefault();
+                .Take(1).ToList().FirstOrDefault();
             return workTask;
         }
 
-        public async Task CreateTeam(Team team)
+        public async Task<Guid> CreateTeam(Team team)
         {
             await Init();
+            team.Id = Guid.NewGuid();
             await _client.CreateDocumentAsync(UriFactory.CreateDocumentCollectionUri(DatabaseId, TEAMS), team);
+            var currentTask = await GetCurrentTask();
+            currentTask.Teams.Add(new TeamTask { Name = team.Name, Id = team.Id });
+            await _client.ReplaceDocumentAsync(UriFactory.CreateDocumentUri(DatabaseId, WORKTASKS, currentTask.Id.ToString()), currentTask);
+            return team.Id;
+        }
+
+        public async Task UpdateWorkTask(WorkTask workTask)
+        {
+            await _client.ReplaceDocumentAsync(UriFactory.CreateDocumentUri(DatabaseId, WORKTASKS, workTask.Id.ToString()), workTask);
         }
 
         public async Task CreateWorkTask(WorkTask workTask)
         {
             await Init();
+            workTask.Id = Guid.NewGuid();
+            var teams = _client.CreateDocumentQuery<Team>(UriFactory.CreateDocumentCollectionUri(DatabaseId, TEAMS)).ToList();
+            workTask.Teams.AddRange(teams.Select(x => new TeamTask { Name = x.Name, Id = x.Id }));
             await _client.CreateDocumentAsync(UriFactory.CreateDocumentCollectionUri(DatabaseId, WORKTASKS), workTask);
         }
     }

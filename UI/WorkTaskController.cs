@@ -19,32 +19,9 @@ namespace UI
         }
         // GET: api/<controller>
         [HttpGet]
-        public WorkTask GetCurrent()
+        public async Task<WorkTask> GetCurrent()
         {
-            var WorkTasks = new WorkTask
-            {
-                Name = "Say hello to your neighbors",
-                Teams = new List<TeamTask>
-                {
-                    new TeamTask
-                    {
-                        Name = "The awesomes"
-                    },
-                    new TeamTask
-                    {
-                        Name = "In need of help",
-                        NeedHelp = true,
-                        HelpTime = DateTime.Now
-                    },
-                    new TeamTask
-                    {
-                        Name = "Amazingly fast",
-                        Complete = true,
-                        CompletionTime = DateTime.Now
-                    }
-                }
-            };
-            return WorkTasks;
+            return await cosmosRepository.GetCurrentTask();
         }
 
 
