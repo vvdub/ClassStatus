@@ -29,155 +29,173 @@
 </div>
 
 @section styles{
-<style>
-    body {
-        background-color: black;
-        color: white;
-    }
+    <style>
+        body {
+            background-color: black;
+            color: white;
+        }
 
-    .col-md-2 {
-        padding-bottom: 10px;
-    }
+        .col-md-2 {
+            padding-bottom: 10px;
+        }
 
-    .team-tile {
-        width: 100%;
-        height: 100px;
-        border: solid white;
-        padding: 2px;
-    }
+        .team-tile {
+            width: 100%;
+            height: 100px;
+            border: solid white;
+            padding: 2px;
+        }
 
-    .team-title {
-        width: 100%;
-        font-weight: bold;
-        text-align: center;
-    }
+        .team-title {
+            width: 100%;
+            font-weight: bold;
+            text-align: center;
+        }
 
-    .myteam {
-        border-color: orange;
-    }
+        .myteam {
+            border-color: orange;
+        }
 
-    .normal {
-        background-color: black;
-    }
+        .normal {
+            background-color: black;
+        }
 
-    .complete {
-        background-color: lightgreen;
-    }
+        .complete {
+            background-color: lightgreen;
+        }
 
-    .need-help {
-        background-color: lightyellow;
-        color: black;
-    }
+        .need-help {
+            background-color: lightyellow;
+            color: black;
+        }
 
-    .team-time {
-        bottom: 10px;
-        position: absolute;
-    }
+        .team-time {
+            bottom: 10px;
+            position: absolute;
+        }
 
-    .team-controls {
-        bottom: 30px;
-        position: absolute;
-        cursor: pointer;
-    }
+        .team-controls {
+            bottom: 30px;
+            position: absolute;
+            cursor: pointer;
+        }
 
-    input {
-        color: black;
-    }
+        input {
+            color: black;
+        }
 
-    button {
-        color: black;
-    }
-</style>
+        button {
+            color: black;
+        }
+    </style>
 }
 
 @section scripts{
-<script>
+    <script src="~/lib/signalr/dist/browser/signalr.min.js"></script>
+    <script src="~/js/sockets.js"></script>
+    <script>
 
-    async function createTask(taskName) {
-        await fetch("/api/WorkTask", {
-            method: "POST", body: JSON.stringify(taskName), headers: new Headers({
-                'Content-Type': 'application/json'
-            })
-        });
+        async function createTask(taskName) {
+            await fetch("/api/WorkTask", {
+                method: "POST", body: JSON.stringify(taskName), headers: new Headers({
+                    'Content-Type': 'application/json'
+                })
+            });
 
-    }
-    async function createTeam(teamName) {
-        return await (await fetch("/api/Team", {
-            method: "POST", body: JSON.stringify(teamName), headers: new Headers({
-                'Content-Type': 'application/json'
-            })
-        })).json();
-    }
-    async function help(teamId) {
-        await fetch("/api/Team/help", {
-            method: "POST",
-            body: JSON.stringify(teamId), headers: new Headers({
-                'Content-Type': 'application/json'
-            })
-        });
-    }
-    async function done(teamId) {
-        await fetch("/api/Team/done", {
-            method: "POST",
-            body: JSON.stringify(teamId), headers: new Headers({
-                'Content-Type': 'application/json'
-            })
-        });
-    }
-    async function setup() {
-        let model = await (await fetch("/api/WorkTask")).json();
-        model.teamName = localStorage.getItem("teamName");
-        model.teamId = localStorage.getItem("teamId");
-        Vue.filter('formatTime', function (value) {
-            if (value && typeof(value) === "string") {
-                return moment(String(value), moment.ISO_8601).format('HH:mm:ss');
-            }
-            if (value && typeof (value) === "object") {
-                return moment(value).format('HH:mm:ss');
-            }
-        });
-        var app = new Vue({
-            el: '#app',
-            data: {
-                taskName: "",
-                ...model
-            },
-            methods: {
-                createTask: async function () {
-                    await createTask(this.taskName);
-                    this.name = this.taskName;
-                    for(const team of this.teams){
-                        team.needHelp = false;
-                        team.complete = false;
-                        team.completionTime = null;
-                        team.helpTime = null;
-                    }
-                },
-                createTeam: async function () {
-                    let newid = await createTeam(this.teamName);
-                    this.teams.push({ name: this.teamName });
-                    localStorage.setItem("teamId", newid);
-                    localStorage.setItem("teamName", this.teamName);
-                },
-                help: async function () {
-                    await help(this.teamId);
-                    this.teams.find(x => x.id == this.teamId).needHelp = true;
-                    this.teams.find(x => x.id == this.teamId).complete = false;
-                    this.teams.find(x => x.id == this.teamId).helpTime = moment();
-                    this.teams.find(x => x.id == this.teamId).completionTime = null;
-                },
-                done: async function () {
-                    await done(this.teamId);
-                    this.teams.find(x => x.id == this.teamId).complete = true;
-                    this.teams.find(x => x.id == this.teamId).needHelp = false;
-                    this.teams.find(x => x.id == this.teamId).completionTime = moment();
-                    this.teams.find(x => x.id == this.teamId).helpTime = null;
+        }
+        async function createTeam(teamName) {
+            let teamId = await (await fetch("/api/Team", {
+                method: "POST", body: JSON.stringify(teamName), headers: new Headers({
+                    'Content-Type': 'application/json'
+                })
+            })).json();
+            await fetch("https://localhost:44308/api/Team/TeamAdded", {
+                method: "POST", body: JSON.stringify({ id: teamId, name: teamName }), headers: new Headers({
+                    'Content-Type': 'application/json'
+                })
+            });
+
+            return teamId;
+        }
+        async function help(teamId) {
+            await fetch("/api/Team/help", {
+                method: "POST",
+                body: JSON.stringify(teamId), headers: new Headers({
+                    'Content-Type': 'application/json'
+                })
+            });
+            await fetch("https://localhost:44308/api/Team/Help", {
+                method: "POST", body: JSON.stringify({ id: teamId }), headers: new Headers({
+                    'Content-Type': 'application/json'
+                })
+            });
+        }
+        async function done(teamId) {
+            await fetch("/api/Team/done", {
+                method: "POST",
+                body: JSON.stringify(teamId), headers: new Headers({
+                    'Content-Type': 'application/json'
+                })
+            });
+            await fetch("https://localhost:44308/api/Team/Done", {
+                method: "POST", body: JSON.stringify({ id: teamId }), headers: new Headers({
+                    'Content-Type': 'application/json'
+                })
+            });
+        }
+        let model;
+        async function setup() {
+            model = await (await fetch("/api/WorkTask")).json();
+            model.teamName = localStorage.getItem("teamName");
+            model.teamId = localStorage.getItem("teamId");
+            model.taskName = "";
+            Vue.filter('formatTime', function (value) {
+                if (value && typeof (value) === "string") {
+                    return moment(String(value), moment.ISO_8601).format('HH:mm:ss');
                 }
-            }
-        });
-    }
-    setup();
+                if (value && typeof (value) === "object") {
+                    return moment(value).format('HH:mm:ss');
+                }
+            });
 
-</script>
+            var app = new Vue({
+                el: '#app',
+                data: model,
+                methods: {
+                    createTask: async function () {
+                        await createTask(this.taskName);
+                        this.name = this.taskName;
+                        for (const team of this.teams) {
+                            team.needHelp = false;
+                            team.complete = false;
+                            team.completionTime = null;
+                            team.helpTime = null;
+                        }
+                    },
+                    createTeam: async function () {
+                        let newid = await createTeam(this.teamName);
+                        localStorage.setItem("teamId", newid);
+                        localStorage.setItem("teamName", this.teamName);
+                    },
+                    help: async function () {
+                        await help(this.teamId);
+                        this.teams.find(x => x.id == this.teamId).needHelp = true;
+                        this.teams.find(x => x.id == this.teamId).complete = false;
+                        this.teams.find(x => x.id == this.teamId).helpTime = moment();
+                        this.teams.find(x => x.id == this.teamId).completionTime = null;
+                    },
+                    done: async function () {
+                        await done(this.teamId);
+                        this.teams.find(x => x.id == this.teamId).complete = true;
+                        this.teams.find(x => x.id == this.teamId).needHelp = false;
+                        this.teams.find(x => x.id == this.teamId).completionTime = moment();
+                        this.teams.find(x => x.id == this.teamId).helpTime = null;
+                    }
+                }
+            });
+        }
+        setup();
+
+    </script>
 
 }
