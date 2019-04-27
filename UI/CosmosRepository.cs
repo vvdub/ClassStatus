@@ -45,11 +45,19 @@ namespace UI
         public async Task<WorkTask> GetCurrentTask()
         {
             await Init();
-            var workTask = _client.CreateDocumentQuery<WorkTask>(
-                UriFactory.CreateDocumentCollectionUri(DatabaseId, WORKTASKS))
-                .OrderByDescending(x => x.CreateDate)
-                .Take(1).ToList().FirstOrDefault();
-            return workTask;
+            try
+            {
+               
+                var workTask = _client.CreateDocumentQuery<WorkTask>(
+                    UriFactory.CreateDocumentCollectionUri(DatabaseId, WORKTASKS))
+                    .OrderByDescending(x => x.CreateDate)
+                    .Take(1).ToList().FirstOrDefault();
+
+                return workTask;
+            }catch(Exception ex)
+            {
+                return new WorkTask { Name = "Start" };
+            }
         }
 
         public async Task<Guid> CreateTeam(Team team)

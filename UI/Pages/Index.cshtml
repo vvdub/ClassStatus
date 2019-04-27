@@ -167,7 +167,11 @@
         }
         let model;
         async function setup() {
-            model = await (await fetch("/api/WorkTask")).json();
+            try {
+                model = await (await fetch("/api/WorkTask")).json();
+            }
+            catch (ex) {
+                model = { name:"", teams:{}};}
             model.teamName = localStorage.getItem("teamName");
             model.teamId = localStorage.getItem("teamId");
             model.taskName = "";
