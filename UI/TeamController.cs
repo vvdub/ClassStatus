@@ -36,6 +36,18 @@ namespace UI
             await cosmosRepository.UpdateWorkTask(currentTask);
         }
         [HttpPost]
+        [Route("working")]
+        public async Task Working([FromBody]Guid value)
+        {
+            var currentTask = await cosmosRepository.GetCurrentTask();
+            var currentTeam = currentTask.Teams.Single(x => x.Id == value);
+            currentTeam.Complete = false;
+            currentTeam.CompletionTime = null;
+            currentTeam.NeedHelp = false;
+            currentTeam.HelpTime = null;
+            await cosmosRepository.UpdateWorkTask(currentTask);
+        }
+        [HttpPost]
         [Route("help")]
         public async Task NeedHelp([FromBody]Guid value)
         {

@@ -7,7 +7,7 @@
     <label for="teamName">Add a new team</label>
     <input type="text" v-model="teamName" id="teamName" /><button v-on:click="createTeam()">Add team</button>
     <label for="taskName">Set current task</label>
-    <input type="text" v-model="taskName" id="taskName" /><button v-on:click="createTask()">Add task</button>
+    <input type="text" v-model="taskName" id="taskName" /><button v-on:click="createTask()">Set task</button>
     <div class="row">
         <h1>{{name}}</h1>
         <div class="col-md-2" v-for="team in teams">
@@ -16,6 +16,7 @@
                 <div class="team-controls" v-if="team.id === teamId">
                     <span v-on:click="help()">Help!</span>
                     <span v-on:click="done()">Done!</span>
+                    <span v-on:click="working()">Working!</span>
                 </div>
                 <div class="team-time">
 
@@ -95,13 +96,19 @@
     <script src="~/js/sockets.js"></script>
     <script>
 
+
+
         async function createTask(taskName) {
             await fetch("/api/WorkTask", {
                 method: "POST", body: JSON.stringify(taskName), headers: new Headers({
                     'Content-Type': 'application/json'
                 })
             });
-
+            await fetch("https://localhost:44308/api/Task", {
+                method: "POST", body: JSON.stringify(taskName), headers: new Headers({
+                    'Content-Type': 'application/json'
+                })
+            });
         }
         async function createTeam(teamName) {
             let teamId = await (await fetch("/api/Team", {
@@ -125,6 +132,20 @@
                 })
             });
             await fetch("https://localhost:44308/api/Team/Help", {
+                method: "POST", body: JSON.stringify({ id: teamId }), headers: new Headers({
+                    'Content-Type': 'application/json'
+                })
+            });
+        }
+        
+        async function help(teamId) {
+            await fetch("/api/Team/working", {
+                method: "POST",
+                body: JSON.stringify(teamId), headers: new Headers({
+                    'Content-Type': 'application/json'
+                })
+            });
+            await fetch("https://localhost:44308/api/Team/Working", {
                 method: "POST", body: JSON.stringify({ id: teamId }), headers: new Headers({
                     'Content-Type': 'application/json'
                 })
@@ -182,6 +203,13 @@
                         this.teams.find(x => x.id == this.teamId).needHelp = true;
                         this.teams.find(x => x.id == this.teamId).complete = false;
                         this.teams.find(x => x.id == this.teamId).helpTime = moment();
+                        this.teams.find(x => x.id == this.teamId).completionTime = null;
+                    },
+                    working: async function () {
+                        await help(this.teamId);
+                        this.teams.find(x => x.id == this.teamId).needHelp = false;
+                        this.teams.find(x => x.id == this.teamId).complete = false;
+                        this.teams.find(x => x.id == this.teamId).helpTime = null;
                         this.teams.find(x => x.id == this.teamId).completionTime = null;
                     },
                     done: async function () {

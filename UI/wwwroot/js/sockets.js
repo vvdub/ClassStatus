@@ -7,6 +7,15 @@ connection.on("TeamAdded", (message) => {
     }
 });
 
+connection.on("Working", (message) => {
+    console.log(message.name);
+    let team = model.teams.find(x => x.id === message.id);
+    team.needHelp = false;
+    team.complete = false;
+    team.helpTime = null;
+    team.completionTime = null;
+});
+
 connection.on("Help", (message) => {
     console.log(message.name);
     let team = model.teams.find(x => x.id === message.id);
@@ -28,12 +37,12 @@ connection.on("Done", (message) => {
 connection.on("TaskUpdated", (message) => {
     for (let team of model.teams) {
         team.needHelp = false;
-        team.complete = true;
+        team.complete = false;
         team.helpTime = null;
         team.completionTime = null;
         
     }
-    model.ta
+    model.name = message;
 });
 
 connection.start().then(() => {
