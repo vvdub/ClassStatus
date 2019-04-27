@@ -1,4 +1,4 @@
-﻿var connection = new signalR.HubConnectionBuilder().withUrl("https://localhost:44308/teamHub").build();
+﻿var connection = new signalR.HubConnectionBuilder().withUrl(socketUrl).build();
 
 connection.on("TeamAdded", (message) => {
     console.log(message.name);
