@@ -13,9 +13,6 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
-- task: WhiteSource Bolt@19
-  inputs:
-    cwd: '$(Agent.BuildDirectory)'
 - task: Docker@2
   inputs:
     containerRegistry: 'e5a11e68-a759-489d-8398-00b172b3d7f9'
